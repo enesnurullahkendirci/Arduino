@@ -5,20 +5,15 @@ https://www.facebook.com/francefu
 
 Arduino IDE Library
 Firebase ESP32 Client by Mobizt version 3.2.1
+https://github.com/mobizt
 
-ESP32-CAM How to save a captured photo to Firebase
-https://youtu.be/Hx7bdpev1ug
-
-How to set up Firebase
-https://iotdesignpro.com/projects/iot-controlled-led-using-firebase-database-and-esp32
 */
 
-const char* ssid = "xxxxxxxxxx";
-const char* password = "xxxxxxxxxx";
+const char* ssid = "EMW2325";
+const char* password = "123456789";
 
-//https://console.firebase.google.com/project/xxxxxxxxxx/settings/serviceaccounts/databasesecrets
-String FIREBASE_HOST = "xxxxxxxxxx.firebaseio.com";
-String FIREBASE_AUTH = "xxxxxxxxxxxxxxxxxxxx";
+String FIREBASE_HOST = "***";
+String FIREBASE_AUTH = "***";
 
 #include "FirebaseESP32.h"
 FirebaseData firebaseData;
@@ -70,13 +65,8 @@ void setup() {
   } 
 
   if (WiFi.status() == WL_CONNECTED) {
-    char* apssid = "ESP32-CAM";
-    char* appassword = "12345678";         //AP password require at least 8 characters.
     Serial.println(""); 
-    Serial.print("Camera Ready! Use 'http://");
-    Serial.print(WiFi.localIP());
-    Serial.println("' to connect");
-    WiFi.softAP((WiFi.localIP().toString()+"_"+(String)apssid).c_str(), appassword);            
+    Serial.print("Connection Successful");      
   }
   else {
     Serial.println("Connection failed");
@@ -125,8 +115,9 @@ void setup() {
 
   //drop down frame size for higher initial frame rate
   sensor_t * s = esp_camera_sensor_get();
-  s->set_framesize(s, FRAMESIZE_QQVGA);  // VGA|CIF|QVGA|HQVGA|QQVGA   ( UXGA? SXGA? XGA? SVGA? )
- 
+  s->set_framesize(s, FRAMESIZE_QVGA);  // VGA|CIF|QVGA|HQVGA|QQVGA   ( UXGA? SXGA? XGA? SVGA? )
+                                        //base64 çevirisi 15kb'dan fazla desteklemediğinden QVGA'da bıraktım
+                                        //CIF ve VGA bazen hata verebiliyor
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   Firebase.reconnectWiFi(true);
   Firebase.setMaxRetry(firebaseData, 3);
@@ -142,10 +133,22 @@ void setup() {
   } else {
     Serial.println(firebaseData.errorReason());
   }
-} 
+}   
  
-void loop() { 
-  delay(10000);
+void loop() {  
+  delay(420000); 
+
+   //Butono basmadan devamlı fotoğraf çekimi için
+  String jsonData = "{\"photo\":\"" + Photo2Base64() + "\"}";
+  String photoPath = "/esp32-cam";
+  if (Firebase.pushJSON(firebaseData, photoPath, jsonData)) {
+    Serial.println(firebaseData.dataPath());
+    Serial.println(firebaseData.pushName());
+    Serial.println(firebaseData.dataPath() + "/"+ firebaseData.pushName());
+  } else {
+    Serial.println(firebaseData.errorReason());
+  }
+  
 }
 
 String Photo2Base64() {
